@@ -16,19 +16,6 @@ class DDLHelper():
           )
     """                         
     )
-
-  def save_billing_data(self, table_name, checkpoint_path):
-    df = (spark.readStream
-          .format("delta")
-          .load('system.billing.usage')
-    )
-
-    (df.writeStream
-      .format("delta")
-      .trigger(once=True)
-      .option("checkpointLocation", checkpoint_path)
-      .toTable(table_name)
-    )
     
 
    def create_granular_forecast_view(self, target_catalog, target_schema):
@@ -36,7 +23,7 @@ class DDLHelper():
     Forecast Reporting view for granular sku i.e. STANDARD_ALL_PURPOSE_COMPUTE, PREMIUM_ALL_PURPOSE_COMPUTE
     """
     self.spark.sql(f"""
-          create view if not exists {target_catalog}.{target_schema}.vw_dbu_granular_forecasts_w_avgs
+          create view if not exists {target_catalog}.{target_schema}.vw_dbu_granular_forecasts
           as 
           with forecasts as (
             select 
@@ -47,21 +34,21 @@ class DDLHelper():
             , l.list_price
             , f.y*l.list_price as ApproxListCost
             , f.yhat*l.list_price as ApproxForecastListCost
-            , case when f.yhat_lower*l.list_price < 0 then 0 else f.yhat_lower*l.list_price end as ApproxForecastListCostLower
+            , greatest(0, f.yhat_lower*l.list_price) as ApproxForecastListCostLower
             , f.yhat_upper*l.list_price as ApproxForecastListCostUpper
-            , case when f.yhat < 0 then 0 else f.yhat end as dbus_predicted
-            , case when f.yhat_upper < 0 then 0 else f.yhat_upper end as dbus_predicted_upper
-            , case when f.yhat_lower < 0 then 0 else f.yhat_lower end as dbus_predicted_lower
-            , case when f.y > f.yhat_upper then TRUE else FALSE end as upper_anomaly_alert
-            , case when f.y < f.yhat_lower then TRUE else FALSE end as lower_anomaly_alert
-            , case when f.y >= f.yhat_lower AND f.y <= f.yhat_upper THEN true ELSE false END AS on_trend
+            , greatest(0, f.yhat) as dbus_predicted
+            , greatest(0, f.yhat_upper) as dbus_predicted_upper
+            , greatest(0, f.yhat_lower) as dbus_predicted_lower
+            , f.y > f.yhat_upper as upper_anomaly_alert
+            , f.y < f.yhat_lower as lower_anomaly_alert
+            , f.y >= f.yhat_lower AND f.y <= f.yhat_upper as on_trend
             , f.training_date
 
           from {target_catalog}.{target_schema}.output_dbu_forecasts_by_date_system_sku_workspace f
             inner join {target_catalog}.{target_schema}.sku_cost_lookup l on l.sku = f.sku
             )
 
-            -- this portion applies a smoothin of the upper and lower bands
+            -- this portion applies a smoothing of the upper and lower bands
             select 
             `date`
             , workspace_id
@@ -80,39 +67,9 @@ class DDLHelper():
             , on_trend
             , training_date
             from forecasts 
-    """)
+      """)
 
 
-
-  def create_raw_granular_forecast_view(self, target_catalog, target_schema):
-    """
-    Forecast Reporting view for granular sku i.e. STANDARD_ALL_PURPOSE_COMPUTE, PREMIUM_ALL_PURPOSE_COMPUTE
-    """
-    self.spark.sql(f"""
-          create view if not exists {target_catalog}.{target_schema}.vw_dbu_granular_forecasts
-          as 
-          select 
-          f.ds as date
-          , f.workspace_id
-          , f.sku
-          , f.y as dbus
-          , l.list_price
-          , f.y*l.list_price as ApproxListCost
-          , f.yhat*l.list_price as ApproxForecastListCost
-          , case when f.yhat_lower*l.list_price < 0 then 0 else f.yhat_lower*l.list_price end as ApproxForecastListCostLower
-          , f.yhat_upper*l.list_price as ApproxForecastListCostUpper
-          , case when f.yhat < 0 then 0 else f.yhat end as dbus_predicted
-          , case when f.yhat_upper < 0 then 0 else f.yhat_upper end as dbus_predicted_upper
-          , case when f.yhat_lower < 0 then 0 else f.yhat_lower end as dbus_predicted_lower
-          , case when f.y > f.yhat_upper then TRUE else FALSE end as upper_anomaly_alert
-          , case when f.y < f.yhat_lower then TRUE else FALSE end as lower_anomaly_alert
-          , case when f.y >= f.yhat_lower AND f.y <= f.yhat_upper THEN true ELSE false END AS on_trend
-          , f.training_date
-          
-          from {target_catalog}.{target_schema}.output_dbu_forecasts_by_date_system_sku_workspace f
-            inner join {target_catalog}.{target_schema}.sku_cost_lookup l on l.sku = f.sku
-
-    """)
   
   def insert_into_cost_lookup_table(self, target_catalog, target_schema):
     """

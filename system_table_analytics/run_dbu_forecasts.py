@@ -17,6 +17,7 @@
 # DBTITLE 1,Import libs
 from pyspark.sql.functions import *
 from libs.dbu_prophet_forecast import DBUProphetForecast
+from libs.ddl_helper import DDLHelper
 import uuid
 
 # COMMAND ----------
@@ -29,11 +30,8 @@ dpf = DBUProphetForecast(forecast_periods=180)
 # DBTITLE 1,Parameters
 dbutils.widgets.text('TargetCatalog', 'main')
 dbutils.widgets.text('TargetSchema', 'prophet_forecast_schema')
-dbutils.widgets.text('ETLCheckpoint', '')
 target_catalog = dbutils.widgets.get('TargetCatalog')
 target_schema = dbutils.widgets.get('TargetSchema')
-etl_checkpoint = dbutils.widgets.get('ETLCheckpoint')
-
 
 # COMMAND ----------
 
@@ -55,12 +53,6 @@ def generate_forecast_udf(history_pd):
 def evaluate_forecast_udf(evaluation_pd):
     return dpf.evaluate_forecast( evaluation_pd )
 
-
-# COMMAND ----------
-
-# Each time we generate forecasts we will archive the billing data 
-etl_table_name = f'{target_catalog}.{target_schema}.historical_billing_usage'
-dpf.save_billing_data(table_name=etl_table_name, checkpoint_path=etl_checkpoint)
 
 # COMMAND ----------
 
@@ -122,3 +114,23 @@ results = (
   .mode('append')
   .saveAsTable(f"{target_catalog}.{target_schema}.output_forecasts_dbus_evaluations")
 )
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Create BI Tables and Views 
+
+# COMMAND ----------
+
+## DDL Helper is used to create a cost lookup table
+# create obj
+ddl_help = DDLHelper(spark=spark)
+# create table DDL
+ddl_help.create_cost_lookup_table(target_catalog=target_catalog, target_schema=target_schema)
+# insert overwrite into tale
+ddl_help.insert_into_cost_lookup_table(target_catalog=target_catalog, target_schema=target_schema)
+
+# COMMAND ----------
+
+# Reporting view on top of our raw forecast outputs 
+ddl_help.create_granular_forecast_view(target_catalog=target_catalog, target_schema=target_schema)
