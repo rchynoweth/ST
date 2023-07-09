@@ -23,11 +23,10 @@ class DBUProphetForecast():
     :param forecast_frequency: frequency of the ds column. Default is daily i.e. 'd'
     :param include_history: whether or not to include history in the output dataframe. Default is True. 
     """
-    self.forecast_periods=forecast_periods
-    self.forecast_frequency=forecast_frequency
-    self.include_history=include_history
-    self.interval_width=interval_width
-    
+    self.forecast_periods = forecast_periods
+    self.forecast_frequency = forecast_frequency
+    self.include_history = include_history
+    self.interval_width = interval_width
     
     # Training output schema 
     self.forecast_result_schema = StructType([

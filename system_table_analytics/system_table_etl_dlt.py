@@ -1,8 +1,4 @@
 # Databricks notebook source
-import dlt
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC # System Table ETL 
 # MAGIC
@@ -14,36 +10,46 @@ import dlt
 
 # COMMAND ----------
 
+dbutils.widgets.text('TargetCatalog', 'main')
+dbutils.widgets.text('TargetSchema', 'system_tables')
+dbutils.widgets.text('CheckpointLocations', '')
+target_catalog = dbutils.widgets.get('TargetCatalog')
+target_schema = dbutils.widgets.get('TargetSchema')
+checkpoint_lo = dbutils.widgets.get('CheckpointLocations')
+
+# COMMAND ----------
+
+spark.sql(f'use catalog {target_catalog}')
+spark.sql(f'create schema if not exists {target_schema}')
+spark.sql(f'use schema {target_schema}')
+
+# COMMAND ----------
+
 tables = [
-  '`system.billing.usage`'
-  , '`system.access.audit`'
+  'system.billing.usage'
+  , 'system.access.audit'
 ]
 
 # COMMAND ----------
 
-### 
-# This creates append only tables for our bronze sources
-# we can do further modeling in silver/gold layers 
-###
-def generate_tables(table):  
-  @dlt.table( name=table.replace('.', '_'), comment=f"BRONZE: {table.replace('.', '_')}" )  
-  def create_table():    
-    return (spark.readStream
-        .format("delta")
-        .table(table)
-    )  
+def create_table():    
+  return (spark.readStream
+      .format("delta")
+      .table(table)
+  )  
 
 
 # COMMAND ----------
 
-# for each table we pass it into the above function
-for t in tables:  
-  generate_tables(t)
-
-# COMMAND ----------
-
-display(spark.sql('select * from system.billing.usage'))
-
-# COMMAND ----------
-
+# Billing Stream
+(
+  spark.readStream
+  .format("delta")
+  .table("system.billing.usage")
+  .writeStream
+  .format("delta")
+  .outputMode("append") # checkpoint location
+  .option("checkpointLocation", "/tmp/delta/_checkpoints/")
+  .start("/delta/events")
+)
 
