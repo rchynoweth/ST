@@ -15,7 +15,7 @@ dbutils.widgets.text('TargetSchema', 'system_tables')
 dbutils.widgets.text('CheckpointLocations', '')
 target_catalog = dbutils.widgets.get('TargetCatalog')
 target_schema = dbutils.widgets.get('TargetSchema')
-checkpoint_lo = dbutils.widgets.get('CheckpointLocations')
+checkpoint_location = dbutils.widgets.get('CheckpointLocations')
 
 # COMMAND ----------
 
@@ -32,24 +32,34 @@ tables = [
 
 # COMMAND ----------
 
-def create_table():    
-  return (spark.readStream
-      .format("delta")
-      .table(table)
-  )  
+@dlt.table(name='system_billing_usage')
+def system_billing_usage():
+  return (
+    spark.readStream
+    .format('delta')
+    .table('system.billing.usage')
+    )
+
+# COMMAND ----------
+
+# def create_table():    
+#   return (spark.readStream
+#       .format("delta")
+#       .table(table)
+#   )  
 
 
 # COMMAND ----------
 
-# Billing Stream
-(
-  spark.readStream
-  .format("delta")
-  .table("system.billing.usage")
-  .writeStream
-  .format("delta")
-  .outputMode("append") # checkpoint location
-  .option("checkpointLocation", "/tmp/delta/_checkpoints/")
-  .start("/delta/events")
-)
+# # Billing Stream
+# (
+#   spark.readStream
+#   .format("delta")
+#   .table("system.billing.usage")
+#   .writeStream
+#   .format("delta")
+#   .outputMode("append") # checkpoint location
+#   .option("checkpointLocation", "/tmp/delta/_checkpoints/")
+#   .start("/delta/events")
+# )
 
