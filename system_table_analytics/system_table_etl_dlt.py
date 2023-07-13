@@ -10,22 +10,18 @@
 
 # COMMAND ----------
 
-import dlt
+dbutils.widgets.text('TargetCatalog', 'main')
+dbutils.widgets.text('TargetSchema', 'system_tables')
+dbutils.widgets.text('CheckpointLocations', '')
+target_catalog = dbutils.widgets.get('TargetCatalog')
+target_schema = dbutils.widgets.get('TargetSchema')
+checkpoint_location = dbutils.widgets.get('CheckpointLocations')
 
 # COMMAND ----------
 
-# dbutils.widgets.text('TargetCatalog', 'main')
-# dbutils.widgets.text('TargetSchema', 'system_tables')
-# dbutils.widgets.text('CheckpointLocations', '')
-# target_catalog = dbutils.widgets.get('TargetCatalog')
-# target_schema = dbutils.widgets.get('TargetSchema')
-# checkpoint_location = dbutils.widgets.get('CheckpointLocations')
-
-# COMMAND ----------
-
-# spark.sql(f'use catalog {target_catalog}')
-# spark.sql(f'create schema if not exists {target_schema}')
-# spark.sql(f'use schema {target_schema}')
+spark.sql(f'use catalog {target_catalog}')
+spark.sql(f'create schema if not exists {target_schema}')
+spark.sql(f'use schema {target_schema}')
 
 # COMMAND ----------
 
@@ -36,34 +32,24 @@ tables = [
 
 # COMMAND ----------
 
-@dlt.table(name='system_billing_usage')
-def system_billing_usage():
-  return (
-    spark.readStream
-    .format('delta')
-    .table('system.billing.usage')
-    )
-
-# COMMAND ----------
-
-# def create_table():    
-#   return (spark.readStream
-#       .format("delta")
-#       .table(table)
-#   )  
+# Billing Stream
+billing_df = (spark.readStream
+  .format("deltaSharing")
+  .table("system.billing.usage")
+)
 
 
 # COMMAND ----------
 
-# # Billing Stream
-# (
-#   spark.readStream
-#   .format("delta")
-#   .table("system.billing.usage")
-#   .writeStream
-#   .format("delta")
-#   .outputMode("append") # checkpoint location
-#   .option("checkpointLocation", "/tmp/delta/_checkpoints/")
-#   .start("/delta/events")
-# )
+display(billing_df)
 
+# COMMAND ----------
+
+(
+  billing_df  
+  .writeStream
+  .format("delta")
+  .option("checkpointLocation", f"{checkpoint_location}/system_billing_usage")
+  .trigger(availableNow=True)
+  .toTable("system_billing_usage")
+)
