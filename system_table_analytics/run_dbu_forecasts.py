@@ -134,3 +134,7 @@ ddl_help.insert_into_cost_lookup_table(target_catalog=target_catalog, target_sch
 
 # Reporting view on top of our raw forecast outputs 
 ddl_help.create_granular_forecast_view(target_catalog=target_catalog, target_schema=target_schema)
+
+# COMMAND ----------
+
+

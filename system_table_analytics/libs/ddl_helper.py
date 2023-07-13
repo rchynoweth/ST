@@ -43,7 +43,7 @@ class DDLHelper():
             , f.y >= f.yhat_lower AND f.y <= f.yhat_upper as on_trend
             , f.training_date
 
-          from {target_catalog}.{target_schema}.output_dbu_forecasts_by_date_system_sku_workspace f
+          from {target_catalog}.{target_schema}.output_forecasts_dbus f
             inner join {target_catalog}.{target_schema}.sku_cost_lookup l on l.sku = f.sku
             )
 
