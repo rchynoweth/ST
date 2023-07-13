@@ -1,4 +1,3 @@
-# Databricks notebook source
 from prophet import Prophet
 from pyspark.sql.functions import *
 from pyspark.sql.types import * 
@@ -153,5 +152,4 @@ class DBUProphetForecast():
     results = {'training_date':[training_date], 'training_id': [training_id], 'workspace_id':[workspace_id], 'sku':[sku], 'mae':[mae], 'mse':[mse], 'rmse':[rmse]}
     return pd.DataFrame.from_dict( results )
   
-
 

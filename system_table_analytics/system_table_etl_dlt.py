@@ -10,18 +10,22 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text('TargetCatalog', 'main')
-dbutils.widgets.text('TargetSchema', 'system_tables')
-dbutils.widgets.text('CheckpointLocations', '')
-target_catalog = dbutils.widgets.get('TargetCatalog')
-target_schema = dbutils.widgets.get('TargetSchema')
-checkpoint_location = dbutils.widgets.get('CheckpointLocations')
+import dlt
 
 # COMMAND ----------
 
-spark.sql(f'use catalog {target_catalog}')
-spark.sql(f'create schema if not exists {target_schema}')
-spark.sql(f'use schema {target_schema}')
+# dbutils.widgets.text('TargetCatalog', 'main')
+# dbutils.widgets.text('TargetSchema', 'system_tables')
+# dbutils.widgets.text('CheckpointLocations', '')
+# target_catalog = dbutils.widgets.get('TargetCatalog')
+# target_schema = dbutils.widgets.get('TargetSchema')
+# checkpoint_location = dbutils.widgets.get('CheckpointLocations')
+
+# COMMAND ----------
+
+# spark.sql(f'use catalog {target_catalog}')
+# spark.sql(f'create schema if not exists {target_schema}')
+# spark.sql(f'use schema {target_schema}')
 
 # COMMAND ----------
 

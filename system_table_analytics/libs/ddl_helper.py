@@ -1,4 +1,3 @@
-# Databricks notebook source
 class DDLHelper():
 
   def __init__(self, spark):

@@ -37,8 +37,8 @@ target_schema = dbutils.widgets.get('TargetSchema')
 
 # DBTITLE 1,Create data objects
 # spark.sql(f"create catalog if not exists {target_catalog}")
-# spark.sql(f"create schema if not exists {target_catalog}.{target_schema}")
 spark.sql(f'use catalog {target_catalog}')
+spark.sql(f"create schema if not exists {target_catalog}.{target_schema}")
 spark.sql(f'use schema {target_schema}')
 
 # COMMAND ----------
