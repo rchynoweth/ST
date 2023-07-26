@@ -2,7 +2,11 @@
 # MAGIC %md
 # MAGIC # View DBU Forecasts
 # MAGIC
-# MAGIC This notebook sources data from Databricks System Tables (`system.operational_data.billing_logs`). Generates Prophet forecasts by SKU and Workspace. 
+# MAGIC This notebook sources data from Databricks System Tables (`system.billing.usage`) and from the following Forecast Solution Tables:
+# MAGIC 1. `input_forecast_dbus` - overwritten each time   
+# MAGIC 1. `output_forecasts_dbus` - append only with training data and training uuid  
+# MAGIC 1. `output_forecasts_dbus_evaluations` - append only with training data and training uuid  
+# MAGIC 1. `vw_dbu_granular_forecasts` - Reporting view
 
 # COMMAND ----------
 
@@ -101,6 +105,16 @@ display(spark.read.table(f'{target_catalog}.{target_schema}.vw_dbu_granular_fore
 # COMMAND ----------
 
 display(spark.sql(f'select * from {target_catalog}.{target_schema}.vw_dbu_granular_forecasts'))
+
+# COMMAND ----------
+
+spark.sql(f"""select * 
+from main.prophet_forecast_schema.vw_dbu_granular_forecasts
+where training_date = (
+  select MAX(training_date)
+  from main.prophet_forecast_schema.vw_dbu_granular_forecasts
+)
+and on_trend = False""")
 
 # COMMAND ----------
 
